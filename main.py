@@ -4,12 +4,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 import json
 import logging
 import os
 import re
-import shutil
 import socket
+import shutil
 import subprocess
 import uuid
 
@@ -80,6 +82,13 @@ PASTA_TEMP = PASTA_SAIDA / "temp"
 WHISPER_MODELO = str(os.getenv("WHISPER_MODEL", "small")).strip() or "small"
 WHISPER_DISPOSITIVO = str(os.getenv("WHISPER_DEVICE", "cpu")).strip() or "cpu"
 WHISPER_TIPO_COMPUTE = str(os.getenv("WHISPER_COMPUTE_TYPE", "int8")).strip() or "int8"
+USAR_OLLAMA_REVISAO = str(os.getenv("USAR_OLLAMA_REVISAO", "1")).strip().lower() not in {"0", "false", "nao", "não", "off"}
+OLLAMA_BASE_URL = str(os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")).strip() or "http://127.0.0.1:11434"
+OLLAMA_MODELO = str(os.getenv("OLLAMA_MODELO", "llama3.1:8b")).strip() or "llama3.1:8b"
+try:
+    OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))
+except ValueError:
+    OLLAMA_TIMEOUT = 120
 MODELO_TRANSCRICAO: Any | None = None
 
 
@@ -92,6 +101,7 @@ class CorpoProcessamento(BaseModel):
     acao: str = ""
     urls: list[str] | str = []
     idioma: str | None = None
+    revisar_texto: bool = True
 
 
 @asynccontextmanager
@@ -109,6 +119,10 @@ async def ciclo_vida(_app: FastAPI):
         WHISPER_DISPOSITIVO,
         WHISPER_TIPO_COMPUTE,
     )
+    if USAR_OLLAMA_REVISAO:
+        logger.info("Revisão de texto: Ollama habilitado em %s com modelo %s", OLLAMA_BASE_URL, OLLAMA_MODELO)
+    else:
+        logger.info("Revisão de texto: modo local por regras habilitado")
     logger.info("Frontend disponível em: http://%s:%s", HOST, PORTA)
     logger.info("=" * 72)
     yield
@@ -132,9 +146,26 @@ def registrar_log_json(url: str, titulo: str, pasta_destino: Path, status: str, 
 
 def obter_pasta_ffmpeg() -> str | None:
     """Retorna a pasta do ffmpeg/ffprobe, ou None se não estiver no PATH."""
+    caminho_env = os.getenv("FFMPEG_DIR", "").strip()
+    if caminho_env:
+        pasta_env = Path(caminho_env).expanduser().resolve()
+        if (pasta_env / "ffmpeg.exe").exists() and (pasta_env / "ffprobe.exe").exists():
+            return str(pasta_env)
+
     caminho_ffmpeg = shutil.which("ffmpeg")
     caminho_ffprobe = shutil.which("ffprobe")
     if not caminho_ffmpeg or not caminho_ffprobe:
+        pasta_tools = PASTA_RAIZ / "tools"
+        if pasta_tools.exists():
+            builds = sorted(
+                [item for item in pasta_tools.iterdir() if item.is_dir() and item.name.lower().startswith("ffmpeg")],
+                key=lambda item: item.stat().st_mtime,
+                reverse=True,
+            )
+            for build in builds:
+                pasta_bin = build / "bin"
+                if (pasta_bin / "ffmpeg.exe").exists() and (pasta_bin / "ffprobe.exe").exists():
+                    return str(pasta_bin.resolve())
         return None
     return str(Path(caminho_ffmpeg).resolve().parent)
 
@@ -210,6 +241,149 @@ def formatar_tempo_legivel(segundos: float) -> str:
     minutos, resto = divmod(resto, 60000)
     segundos_int, milissegundos = divmod(resto, 1000)
     return f"{horas:02d}:{minutos:02d}:{segundos_int:02d}.{milissegundos:03d}"
+
+
+def revisar_texto_com_regras(texto: str) -> str:
+    """Aplica correções simples de legibilidade no texto transcrito"""
+    revisado = str(texto or "").strip()
+    if not revisado:
+        return revisado
+
+    revisado = re.sub(r"\s+", " ", revisado)
+    revisado = re.sub(r"\s+([,.;:!?])", r"\1", revisado)
+    revisado = re.sub(r"([,.;:!?])([^\s])", r"\1 \2", revisado)
+    revisado = re.sub(r"\b(\w+)(\s+\1\b)+", r"\1", revisado, flags=re.IGNORECASE)
+
+    partes = re.split(r"([.!?]+[\s]*)", revisado)
+    frases = []
+    for indice in range(0, len(partes), 2):
+        frase = partes[indice].strip()
+        separador = partes[indice + 1] if indice + 1 < len(partes) else ""
+        if not frase:
+            continue
+        frase = frase[0].upper() + frase[1:]
+        frases.append(f"{frase}{separador}")
+
+    revisado = "".join(frases).strip() or revisado
+    if revisado and revisado[-1] not in ".!?":
+        revisado = f"{revisado}."
+    return revisado
+
+
+def revisar_texto_com_ollama(texto: str, idioma: str | None) -> str:
+    """Usa um modelo local do Ollama para revisar e deixar a transcrição mais coesa"""
+    texto_entrada = str(texto or "").strip()
+    if not texto_entrada:
+        return texto_entrada
+
+    idioma_alvo = idioma or "pt"
+    prompt = (
+        "Você é um revisor de transcrições em português\n"
+        "Corrija erros de reconhecimento, pontuação e fluidez\n"
+        "Mantenha o sentido original sem inventar informações\n"
+        "Mantenha o idioma no padrão solicitado\n"
+        "Retorne somente o texto revisado\n\n"
+        f"Idioma solicitado: {idioma_alvo}\n"
+        "Texto:\n"
+        f"{texto_entrada}"
+    )
+
+    payload = {
+        "model": OLLAMA_MODELO,
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "temperature": 0.1,
+        },
+    }
+
+    url = f"{OLLAMA_BASE_URL.rstrip('/')}/api/generate"
+    requisicao = Request(
+        url=url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urlopen(requisicao, timeout=OLLAMA_TIMEOUT) as resposta:
+            corpo = resposta.read().decode("utf-8", errors="ignore")
+    except (HTTPError, URLError, TimeoutError) as erro:
+        raise RuntimeError(f"Falha na revisão via Ollama: {erro}") from erro
+
+    try:
+        dados = json.loads(corpo)
+    except json.JSONDecodeError as erro:
+        raise RuntimeError("Resposta inválida do Ollama durante revisão") from erro
+
+    texto_revisado = str(dados.get("response", "") or "").strip()
+    if not texto_revisado:
+        raise RuntimeError("Ollama retornou revisão vazia")
+    return texto_revisado
+
+
+def revisar_texto_transcricao(texto: str, idioma: str | None, revisar_texto: bool) -> dict:
+    """Revisa o texto da transcrição com IA local ou fallback por regras"""
+    texto_base = str(texto or "").strip()
+    if not texto_base:
+        return {"texto_revisado": "", "metodo": "nenhum"}
+
+    if not revisar_texto:
+        return {"texto_revisado": texto_base, "metodo": "desativado"}
+
+    logger.info(
+        json.dumps(
+            {
+                "Revisão local": "texto_transcrito",
+                "Status": "Iniciando",
+                "Ollama habilitado": USAR_OLLAMA_REVISAO,
+                "Modelo Ollama": OLLAMA_MODELO if USAR_OLLAMA_REVISAO else "",
+            },
+            ensure_ascii=False,
+        )
+    )
+
+    if USAR_OLLAMA_REVISAO:
+        try:
+            texto_revisado = revisar_texto_com_ollama(texto_base, idioma)
+            logger.info(
+                json.dumps(
+                    {
+                        "Revisão local": "texto_transcrito",
+                        "Status": "Sucesso",
+                        "Método": "ollama",
+                        "Tamanho texto": len(texto_revisado),
+                    },
+                    ensure_ascii=False,
+                )
+            )
+            return {"texto_revisado": texto_revisado, "metodo": "ollama"}
+        except Exception as erro:
+            logger.warning(
+                json.dumps(
+                    {
+                        "Revisão local": "texto_transcrito",
+                        "Status": "Fallback",
+                        "Método": "regras",
+                        "Detalhe": str(erro),
+                    },
+                    ensure_ascii=False,
+                )
+            )
+
+    texto_revisado = revisar_texto_com_regras(texto_base)
+    logger.info(
+        json.dumps(
+            {
+                "Revisão local": "texto_transcrito",
+                "Status": "Sucesso",
+                "Método": "regras",
+                "Tamanho texto": len(texto_revisado),
+            },
+            ensure_ascii=False,
+        )
+    )
+    return {"texto_revisado": texto_revisado, "metodo": "regras"}
 
 
 def limpar_nome_seguro(nome: str) -> str:
@@ -371,13 +545,35 @@ def obter_modelo_transcricao():
 
     from faster_whisper import WhisperModel
 
-    logger.info("Carregando modelo faster-whisper: %s", WHISPER_MODELO)
+    logger.info(
+        json.dumps(
+            {
+                "Transcrição local": "faster-whisper",
+                "Ação": "carregar_modelo",
+                "Modelo": WHISPER_MODELO,
+                "Dispositivo": WHISPER_DISPOSITIVO,
+                "Compute": WHISPER_TIPO_COMPUTE,
+                "Status": "Iniciando",
+            },
+            ensure_ascii=False,
+        )
+    )
     MODELO_TRANSCRICAO = WhisperModel(
         WHISPER_MODELO,
         device=WHISPER_DISPOSITIVO,
         compute_type=WHISPER_TIPO_COMPUTE,
     )
-    logger.info("Modelo faster-whisper carregado: %s", WHISPER_MODELO)
+    logger.info(
+        json.dumps(
+            {
+                "Transcrição local": "faster-whisper",
+                "Ação": "carregar_modelo",
+                "Modelo": WHISPER_MODELO,
+                "Status": "Sucesso",
+            },
+            ensure_ascii=False,
+        )
+    )
     return MODELO_TRANSCRICAO
 
 
@@ -385,34 +581,81 @@ def transcrever_com_faster_whisper(caminho_audio: Path, idioma: str | None, past
     """Transcreve o áudio localmente com faster-whisper"""
     modelo = obter_modelo_transcricao()
 
-    amostras_audio = carregar_amostras_audio(caminho_audio, pasta_ffmpeg)
-    segmentos, info = modelo.transcribe(
-        amostras_audio,
-        language=idioma,
-        vad_filter=True,
+    logger.info(
+        json.dumps(
+            {
+                "Transcrição local": "faster-whisper",
+                "Ação": "transcrever",
+                "Modelo": WHISPER_MODELO,
+                "Idioma": idioma or "auto",
+                "Arquivo": caminho_audio.name,
+                "Status": "Iniciando",
+            },
+            ensure_ascii=False,
+        )
     )
-    lista_segmentos = []
-    partes_corridas = []
-    linhas_com_tempo = []
 
-    for segmento in segmentos:
-        texto_segmento = str(getattr(segmento, "text", "") or "").strip()
-        if not texto_segmento:
-            continue
+    try:
+        amostras_audio = carregar_amostras_audio(caminho_audio, pasta_ffmpeg)
+        segmentos, info = modelo.transcribe(
+            amostras_audio,
+            language=idioma,
+            vad_filter=True,
+        )
+        lista_segmentos = []
+        partes_corridas = []
+        linhas_com_tempo = []
 
-        inicio = float(getattr(segmento, "start", 0.0) or 0.0)
-        fim = float(getattr(segmento, "end", inicio) or inicio)
+        for segmento in segmentos:
+            texto_segmento = str(getattr(segmento, "text", "") or "").strip()
+            if not texto_segmento:
+                continue
 
-        lista_segmentos.append({"inicio": inicio, "fim": fim, "texto": texto_segmento})
-        partes_corridas.append(texto_segmento)
-        linhas_com_tempo.append(f"[{formatar_tempo_legivel(inicio)} --> {formatar_tempo_legivel(fim)}] {texto_segmento}")
+            inicio = float(getattr(segmento, "start", 0.0) or 0.0)
+            fim = float(getattr(segmento, "end", inicio) or inicio)
 
-    texto_corrido = " ".join(partes_corridas).strip()
-    texto_com_tempo = "\n".join(linhas_com_tempo).strip()
+            lista_segmentos.append({"inicio": inicio, "fim": fim, "texto": texto_segmento})
+            partes_corridas.append(texto_segmento)
+            linhas_com_tempo.append(f"[{formatar_tempo_legivel(inicio)} --> {formatar_tempo_legivel(fim)}] {texto_segmento}")
+
+        texto_corrido = " ".join(partes_corridas).strip()
+        texto_com_tempo = "\n".join(linhas_com_tempo).strip()
+    except Exception as erro:
+        logger.error(
+            json.dumps(
+                {
+                    "Transcrição local": "faster-whisper",
+                    "Ação": "transcrever",
+                    "Modelo": WHISPER_MODELO,
+                    "Idioma": idioma or "auto",
+                    "Arquivo": caminho_audio.name,
+                    "Status": "Erro",
+                    "Detalhe": str(erro),
+                },
+                ensure_ascii=False,
+            )
+        )
+        raise
 
     if not texto_corrido or not texto_com_tempo:
         raise RuntimeError("A transcrição retornou vazia")
 
+    logger.info(
+        json.dumps(
+            {
+                "Transcrição local": "faster-whisper",
+                "Ação": "transcrever",
+                "Modelo": WHISPER_MODELO,
+                "Idioma solicitado": idioma or "auto",
+                "Idioma detectado": getattr(info, "language", ""),
+                "Arquivo": caminho_audio.name,
+                "Status": "Sucesso",
+                "Tamanho texto": len(texto_corrido),
+                "Total segmentos": len(lista_segmentos),
+            },
+            ensure_ascii=False,
+        )
+    )
     return {
         "texto_corrido": texto_corrido,
         "texto_com_tempo": texto_com_tempo,
@@ -421,34 +664,56 @@ def transcrever_com_faster_whisper(caminho_audio: Path, idioma: str | None, past
     }
 
 
-def salvar_arquivos_transcricao(url: str, titulo: str, texto_corrido: str, texto_com_tempo: str) -> dict:
+def salvar_arquivos_transcricao(
+    url: str,
+    titulo: str,
+    texto_corrido_original: str,
+    texto_corrido_revisado: str,
+    texto_com_tempo: str,
+    revisar_texto: bool,
+) -> dict:
     """Salva transcrição em txt e md."""
     titulo_limpo = limpar_nome_seguro(str(titulo or "").strip())
-    titulo_limpo = re.sub(r"\s+", " ", titulo_limpo).strip(" .") if titulo_limpo else titulo_limpo
+    titulo_limpo = re.sub(r"\s+", " ", titulo_limpo).strip(" .")
     if not titulo_limpo:
         titulo_limpo = "Sem título"
     nome_base = limpar_nome_seguro(f"Transcrição - {titulo_limpo}")
     caminho_txt = criar_caminho_unico(PASTA_TRANSCRICOES, f"{nome_base}.txt")
     caminho_md = criar_caminho_unico(PASTA_TRANSCRICOES, f"{nome_base}.md")
 
-    conteudo_txt = (
-        f"TÍTULO: {titulo}\n"
-        f"URL: {url}\n\n"
-        "TRANSCRIÇÃO\n"
-        "===========\n"
-        f"{texto_corrido}\n\n"
-        "TRANSCRIÇÃO COM TEMPO\n"
-        "=====================\n"
-        f"{texto_com_tempo}\n"
-    )
-    conteudo_md = (
-        f"# {titulo}\n\n"
-        f"URL: {url}\n\n"
-        "## Transcrição\n\n"
-        f"{texto_corrido}\n\n"
-        "## Transcrição com tempo\n\n"
-        f"{texto_com_tempo}\n"
-    )
+    if revisar_texto:
+        conteudo_txt = (
+            f"TÍTULO: {titulo}\n"
+            f"URL: {url}\n\n"
+            "TRANSCRIÇÃO REVISADA\n"
+            "===================\n"
+            f"{texto_corrido_revisado}\n\n"
+            "TRANSCRIÇÃO COM TEMPO\n"
+            "=====================\n"
+            f"{texto_com_tempo}\n"
+        )
+        conteudo_md = (
+            f"# {titulo}\n\n"
+            f"URL: {url}\n\n"
+            "## Transcrição revisada\n\n"
+            f"{texto_corrido_revisado}\n\n"
+            "## Transcrição com tempo\n\n"
+            f"{texto_com_tempo}\n"
+        )
+    else:
+        conteudo_txt = (
+            f"TÍTULO: {titulo}\n"
+            f"URL: {url}\n\n"
+            "TRANSCRIÇÃO ORIGINAL\n"
+            "====================\n"
+            f"{texto_corrido_original}\n"
+        )
+        conteudo_md = (
+            f"# {titulo}\n\n"
+            f"URL: {url}\n\n"
+            "## Transcrição original\n\n"
+            f"{texto_corrido_original}\n"
+        )
 
     caminho_txt.write_text(conteudo_txt, encoding="utf-8")
     caminho_md.write_text(conteudo_md, encoding="utf-8")
@@ -461,24 +726,36 @@ def salvar_arquivos_transcricao(url: str, titulo: str, texto_corrido: str, texto
     }
 
 
-def processar_transcricao(url: str, idioma: str | None, pasta_ffmpeg: str) -> dict:
+def processar_transcricao(url: str, idioma: str | None, pasta_ffmpeg: str, revisar_texto: bool) -> dict:
     """Fluxo completo da transcrição: baixar áudio, transcrever e salvar arquivo."""
     caminho_audio = None
     try:
         caminho_audio, titulo = baixar_audio_temporario(url)
         dados_transcricao = transcrever_com_faster_whisper(caminho_audio, idioma, pasta_ffmpeg)
+        dados_revisao = revisar_texto_transcricao(
+            texto=dados_transcricao["texto_corrido"],
+            idioma=idioma,
+            revisar_texto=revisar_texto,
+        )
         arquivos = salvar_arquivos_transcricao(
             url,
             titulo,
-            texto_corrido=dados_transcricao["texto_corrido"],
+            texto_corrido_original=dados_transcricao["texto_corrido"],
+            texto_corrido_revisado=dados_revisao["texto_revisado"],
             texto_com_tempo=dados_transcricao["texto_com_tempo"],
+            revisar_texto=revisar_texto,
         )
         return {
             "status": "sucesso",
             "url": url,
             "titulo": titulo,
-            "texto": dados_transcricao["texto_corrido"],
+            "texto": dados_revisao["texto_revisado"],
+            "texto_revisado": dados_revisao["texto_revisado"],
+            "texto_corrido_original": dados_transcricao["texto_corrido"],
+            "texto_com_tempo": dados_transcricao["texto_com_tempo"],
             "idioma_detectado": dados_transcricao["idioma_detectado"],
+            "metodo_revisao": dados_revisao["metodo"],
+            "revisao_ativa": revisar_texto,
             "total_segmentos": len(dados_transcricao["segmentos"]),
             "txt_nome": arquivos["txt_nome"],
             "txt_url": arquivos["txt_url"],
@@ -507,6 +784,8 @@ async def rota_status():
         "whisper_modelo": WHISPER_MODELO,
         "whisper_dispositivo": WHISPER_DISPOSITIVO,
         "whisper_compute_type": WHISPER_TIPO_COMPUTE,
+        "revisao_local": "ollama+regras" if USAR_OLLAMA_REVISAO else "regras",
+        "ollama_modelo": OLLAMA_MODELO if USAR_OLLAMA_REVISAO else "",
     }
 
 
@@ -542,6 +821,7 @@ async def rota_processar(corpo: CorpoProcessamento):
     acao = str(corpo.acao or "").strip().lower()
     urls = validar_urls(corpo.urls)
     idioma = str(corpo.idioma or "").strip().lower() or None
+    revisar_texto = bool(corpo.revisar_texto)
 
     if acao not in {"audio", "video", "transcricao"}:
         return JSONResponse(
@@ -554,27 +834,35 @@ async def rota_processar(corpo: CorpoProcessamento):
             status_code=400,
         )
 
-    pasta_ffmpeg = obter_pasta_ffmpeg()
-    if not pasta_ffmpeg:
-        return JSONResponse(
-            {
-                "status": "erro",
-                "mensagem": "ffmpeg/ffprobe não encontrados no PATH. Instale com: winget install -e --id Gyan.FFmpeg",
-            },
-            status_code=400,
-        )
+    pasta_ffmpeg = None
+    if acao in {"audio", "video", "transcricao"}:
+        pasta_ffmpeg = obter_pasta_ffmpeg()
+        if not pasta_ffmpeg:
+            return JSONResponse(
+                {
+                    "status": "erro",
+                    "mensagem": "ffmpeg/ffprobe não encontrados no PATH. Instale com: winget install -e --id Gyan.FFmpeg",
+                },
+                status_code=400,
+            )
 
+    # Processa uma URL por vez para manter a lógica simples
     pasta_log = PASTA_AUDIO if acao == "audio" else PASTA_VIDEO if acao == "video" else PASTA_TRANSCRICOES
     resultados = []
     for url in urls:
         registrar_log_json(url=url, titulo="", pasta_destino=pasta_log, status="Iniciando")
         try:
             if acao == "audio":
-                resultado = baixar_mp3(url, pasta_ffmpeg=pasta_ffmpeg)
+                resultado = baixar_mp3(url, pasta_ffmpeg=pasta_ffmpeg or "")
             elif acao == "video":
-                resultado = baixar_mp4(url, pasta_ffmpeg=pasta_ffmpeg)
+                resultado = baixar_mp4(url, pasta_ffmpeg=pasta_ffmpeg or "")
             else:
-                resultado = processar_transcricao(url, idioma=idioma, pasta_ffmpeg=pasta_ffmpeg)
+                resultado = processar_transcricao(
+                    url,
+                    idioma=idioma,
+                    pasta_ffmpeg=pasta_ffmpeg or "",
+                    revisar_texto=revisar_texto,
+                )
             registrar_log_json(
                 url=url,
                 titulo=str(resultado.get("titulo", "")),
@@ -583,24 +871,62 @@ async def rota_processar(corpo: CorpoProcessamento):
             )
         except DownloadError as erro:
             resultado = {"status": "erro", "url": url, "mensagem": f"Erro de download: {erro}"}
-            registrar_log_json(url=url, titulo="", pasta_destino=pasta_log, status="Erro", detalhe=str(erro))
+            registrar_log_json(
+                url=url,
+                titulo="",
+                pasta_destino=pasta_log,
+                status="Erro",
+                detalhe=str(erro),
+            )
         except Exception as erro:
             resultado = {"status": "erro", "url": url, "mensagem": str(erro)}
-            registrar_log_json(url=url, titulo="", pasta_destino=pasta_log, status="Erro", detalhe=str(erro))
+            registrar_log_json(
+                url=url,
+                titulo="",
+                pasta_destino=pasta_log,
+                status="Erro",
+                detalhe=str(erro),
+            )
         resultados.append(resultado)
 
+    # Monta resposta final
     total_sucesso = sum(1 for item in resultados if item.get("status") == "sucesso")
     status_final = "sucesso" if total_sucesso > 0 else "erro"
     codigo_http = 200 if total_sucesso > 0 else 500
 
     texto_transcrito = ""
+    texto_transcrito_com_tempo = ""
+    arquivos_transcricao = []
     if acao == "transcricao":
-        blocos = [
-            f"TÍTULO: {item.get('titulo', 'Sem título')}\nURL: {item.get('url', '')}\n\n{item.get('texto', '')}"
-            for item in resultados
-            if item.get("status") == "sucesso"
-        ]
-        texto_transcrito = ("\n\n" + ("-" * 80) + "\n\n").join(blocos).strip()
+        blocos = []
+        blocos_com_tempo = []
+        for item in resultados:
+            if item.get("status") != "sucesso":
+                continue
+            blocos.append(
+                f"TÍTULO: {item.get('titulo', 'Sem título')}\n"
+                f"URL: {item.get('url', '')}\n\n"
+                f"{item.get('texto', '')}"
+            )
+            blocos_com_tempo.append(
+                f"TÍTULO: {item.get('titulo', 'Sem título')}\n"
+                f"URL: {item.get('url', '')}\n\n"
+                f"{item.get('texto_com_tempo', '')}"
+            )
+            arquivos_transcricao.append(
+                {
+                    "url_origem": item.get("url", ""),
+                    "txt_nome": item.get("txt_nome", ""),
+                    "txt_url": item.get("txt_url", ""),
+                    "md_nome": item.get("md_nome", ""),
+                    "md_url": item.get("md_url", ""),
+                }
+            )
+
+        texto_transcrito = "\n\n" + ("\n\n" + ("-" * 80) + "\n\n").join(blocos) if blocos else ""
+        texto_transcrito = texto_transcrito.strip()
+        texto_transcrito_com_tempo = "\n\n" + ("\n\n" + ("-" * 80) + "\n\n").join(blocos_com_tempo) if blocos_com_tempo else ""
+        texto_transcrito_com_tempo = texto_transcrito_com_tempo.strip()
 
     return JSONResponse(
         {
@@ -609,6 +935,8 @@ async def rota_processar(corpo: CorpoProcessamento):
             "mensagem": f"Processamento finalizado: {total_sucesso}/{len(resultados)} com sucesso.",
             "resultados": resultados,
             "texto_transcrito": texto_transcrito,
+            "texto_transcrito_com_tempo": texto_transcrito_com_tempo,
+            "arquivos_transcricao": arquivos_transcricao,
         },
         status_code=codigo_http,
     )
