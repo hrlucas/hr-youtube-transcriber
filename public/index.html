@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR - YouTube Transcriber</title>
+    <meta name="theme-color" content="#0b1220">
+    <style>
+        :root {
+            --color-brand-primary: #00305b;
+            --color-black: #000000;
+            --color-white: #FFFFFF;
+            --color-bg-web: #f8f9fa;
+            --color-border: #dee2e6;
+            --color-gray: #6c757d;
+            --color-blue: #175098;
+            --color-blue-vivid: #0086cd;
+            --color-blue-dark: #0a5080;
+
+            --color-text-main: var(--color-brand-primary);
+            --color-text-muted: var(--color-gray);
+            --color-surface: var(--color-white);
+            --color-surface-alt: var(--color-bg-web);
+            --color-focus: var(--color-blue-vivid);
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --space-8: 32px;
+
+            --shadow-card: 0 8px 24px rgba(0, 48, 91, 0.08);
+            --shadow-elevated: 0 12px 32px rgba(0, 48, 91, 0.14);
+
+            --font-main: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            --font-mono: 'Monaco', 'Menlo', 'Consolas', monospace;
+        }
+
+        [data-theme="dark"] {
+            --color-brand-primary: #e5edf7;
+            --color-black: #000000;
+            --color-white: #111827;
+            --color-bg-web: #0b1220;
+            --color-border: #1f2a44;
+            --color-gray: #9aa4b2;
+            --color-blue: #1f5fa2;
+            --color-blue-vivid: #19a0e6;
+            --color-blue-dark: #0f3b5f;
+            --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
+            --shadow-elevated: 0 14px 36px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--color-bg-web);
+            color: var(--color-text-main);
+            font-family: var(--font-main);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .pagina {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--space-6);
+        }
+
+        .topo {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-5);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .marca {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+        }
+
+        .marca h1 {
+            margin: 0;
+            font-family: var(--font-main);
+            font-size: 32px;
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        .marca p {
+            margin: 2px 0 0 0;
+            font-size: 14px;
+            color: var(--color-text-muted);
+        }
+
+        .acoes-topo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .tema-toggle {
+            min-height: 40px;
+            padding: 0 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 999px;
+            background: var(--color-surface);
+            color: var(--color-text-main);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .tema-toggle:hover {
+            border-color: var(--color-blue-vivid);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: var(--space-6);
+        }
+
+        .coluna-form {
+            grid-column: span 7;
+        }
+
+        .coluna-resultado {
+            grid-column: span 5;
+        }
+
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-6);
+        }
+
+        .card h2 {
+            margin: 0 0 var(--space-5) 0;
+            font-family: var(--font-main);
+            font-size: 24px;
+            line-height: 1.25;
+            font-weight: 700;
+            color: var(--color-brand-primary);
+        }
+
+        .grupo {
+            margin-bottom: var(--space-4);
+        }
+
+        .grupo label {
+            display: block;
+            margin-bottom: var(--space-2);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text-main);
+        }
+
+        .revisao-opcao {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text-main);
+        }
+
+        .revisao-opcao input[type="checkbox"] {
+            width: auto;
+            min-height: auto;
+            margin: 0;
+            accent-color: var(--color-blue-vivid);
+        }
+
+        .revisao-ajuda {
+            margin-top: var(--space-1);
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+
+        input,
+        select,
+        textarea,
+        button {
+            font-family: var(--font-main);
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            min-height: 44px;
+            padding: 12px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-white);
+            color: var(--color-text-main);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--color-gray);
+        }
+
+        input:hover,
+        select:hover,
+        textarea:hover {
+            border-color: var(--color-blue);
+        }
+
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible {
+            outline: none;
+            border-color: var(--color-blue-vivid);
+            box-shadow: 0 0 0 3px rgba(0, 134, 205, 0.2);
+        }
+
+        .lista-urls {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .linha-url {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: var(--space-2);
+        }
+
+        .btn-principal,
+        .btn-secundario,
+        .btn-ghost {
+            min-height: 44px;
+            padding: 0 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .btn-principal {
+            background: var(--color-brand-primary);
+            color: var(--color-white);
+            border: 1px solid var(--color-brand-primary);
+            width: 100%;
+        }
+
+        .btn-principal:hover {
+            background: var(--color-blue-dark);
+        }
+
+        .btn-principal:active {
+            background: var(--color-blue);
+        }
+
+        .btn-principal:disabled {
+            background: var(--color-border);
+            border-color: var(--color-border);
+            color: var(--color-gray);
+            cursor: not-allowed;
+        }
+
+        .btn-secundario {
+            background: var(--color-white);
+            color: var(--color-brand-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secundario:hover {
+            border-color: var(--color-blue);
+            background: var(--color-bg-web);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-blue);
+            border: 1px solid transparent;
+        }
+
+        .btn-ghost:hover {
+            background: rgba(23, 80, 152, 0.08);
+        }
+
+        .mensagem {
+            border-left: 4px solid var(--color-blue-vivid);
+            background: #e8f4fd;
+            color: var(--color-blue-dark);
+            border-radius: var(--radius-sm);
+            padding: var(--space-3);
+            margin-bottom: var(--space-4);
+            font-size: 14px;
+        }
+
+        .mensagem.sucesso {
+            border-left-color: #2b8a3e;
+            background: #edf7ef;
+            color: #1f6b34;
+        }
+
+        .mensagem.erro {
+            border-left-color: #c92a2a;
+            background: #fdecec;
+            color: #a61b1b;
+        }
+
+        [data-theme="dark"] .mensagem {
+            background: rgba(25, 160, 230, 0.16);
+            color: #d8ecff;
+        }
+
+        [data-theme="dark"] .mensagem.sucesso {
+            border-left-color: #34d399;
+            background: rgba(16, 185, 129, 0.14);
+            color: #d1fae5;
+        }
+
+        [data-theme="dark"] .mensagem.erro {
+            border-left-color: #f87171;
+            background: rgba(239, 68, 68, 0.14);
+            color: #fee2e2;
+        }
+
+        .lista-resultado {
+            list-style: none;
+            margin: 0 0 var(--space-4) 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            max-height: 260px;
+            overflow: auto;
+        }
+
+        .item-resultado {
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-white);
+            padding: var(--space-3);
+        }
+
+        .item-resultado a {
+            color: var(--color-blue);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .item-resultado a:hover {
+            text-decoration: underline;
+        }
+
+        #textoTranscrito {
+            min-height: 220px;
+            resize: vertical;
+            font-family: var(--font-mono);
+            font-size: 13px;
+        }
+
+        .downloads {
+            margin-top: var(--space-2);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+        }
+
+        .rodape {
+            margin-top: var(--space-5);
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 14px;
+        }
+
+        @media (max-width: 1024px) {
+            .coluna-form,
+            .coluna-resultado {
+                grid-column: span 6;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .pagina {
+                padding: var(--space-4);
+            }
+
+            .topo {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .acoes-topo {
+                width: 100%;
+            }
+
+            .grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: var(--space-4);
+            }
+
+            .coluna-form,
+            .coluna-resultado {
+                grid-column: 1 / -1;
+            }
+
+            .card {
+                padding: var(--space-4);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pagina">
+        <header class="topo">
+            <div class="marca">
+                <div>
+                    <h1>HR - YouTube Transcriber</h1>
+                    <p>Baixar MP3, MP4 e transcrever vídeo com IA local</p>
+                </div>
+            </div>
+            <div class="acoes-topo">
+                <button id="themeToggle" class="tema-toggle" type="button" aria-label="Alternar tema">
+                    <span id="themeToggleText">Modo escuro</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="grid">
+            <section class="coluna-form">
+                <article class="card">
+                    <h2>Processamento</h2>
+                    <form id="formProcessamento">
+                        <div class="grupo">
+                            <label for="acao">O que deseja fazer?</label>
+                            <select id="acao" name="acao">
+                                <option value="audio">Baixar como áudio (mp3)</option>
+                                <option value="video">Baixar como vídeo (mp4)</option>
+                                <option value="transcricao">Transcrever com IA local (faster-whisper)</option>
+                            </select>
+                        </div>
+
+                        <div id="grupoIdioma" class="grupo" hidden>
+                            <label for="idioma">Idioma da transcrição (opcional)</label>
+                            <select id="idioma" name="idioma">
+                                <option value="">Detectar automaticamente</option>
+                                <option value="pt" selected>Português</option>
+                                <option value="en">Inglês</option>
+                                <option value="es">Espanhol</option>
+                                <option value="fr">Francês</option>
+                                <option value="de">Alemão</option>
+                                <option value="it">Italiano</option>
+                                <option value="ja">Japonês</option>
+                                <option value="ko">Coreano</option>
+                                <option value="zh">Chinês (Mandarim)</option>
+                            </select>
+                        </div>
+
+                        <div id="grupoRevisao" class="grupo" hidden>
+                            <label class="revisao-opcao" for="revisarTexto">
+                                <input id="revisarTexto" name="revisarTexto" type="checkbox" checked>
+                                Revisar texto para deixar mais coeso
+                            </label>
+                            <div class="revisao-ajuda">Usa IA local para revisar o texto transcrito</div>
+                        </div>
+
+                        <div class="grupo">
+                            <label>URLs do YouTube</label>
+                            <div id="listaUrls" class="lista-urls"></div>
+                        </div>
+
+                        <button id="botaoExecutar" class="btn-principal" type="submit">Processar</button>
+                    </form>
+                </article>
+            </section>
+
+            <section class="coluna-resultado">
+                <article class="card">
+                    <h2>Resultado</h2>
+                    <div id="mensagemStatus" class="mensagem">Aguardando ação.</div>
+                    <ul id="listaResultados" class="lista-resultado"></ul>
+
+                    <div id="grupoResultadoTranscricao" class="grupo" hidden>
+                        <label for="textoTranscrito">Transcrição revisada</label>
+                        <textarea id="textoTranscrito" readonly placeholder="A transcrição revisada aparecerá aqui"></textarea>
+                        <div id="downloadsTranscricao" class="downloads"></div>
+                    </div>
+                </article>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const elementoAcao = document.getElementById("acao");
+        const elementoGrupoIdioma = document.getElementById("grupoIdioma");
+        const elementoGrupoRevisao = document.getElementById("grupoRevisao");
+        const elementoListaUrls = document.getElementById("listaUrls");
+        const elementoBotao = document.getElementById("botaoExecutar");
+        const elementoMensagem = document.getElementById("mensagemStatus");
+        const elementoListaResultados = document.getElementById("listaResultados");
+        const elementoGrupoResultadoTranscricao = document.getElementById("grupoResultadoTranscricao");
+        const elementoTexto = document.getElementById("textoTranscrito");
+        const elementoDownloads = document.getElementById("downloadsTranscricao");
+        const elementoThemeToggle = document.getElementById("themeToggle");
+        const elementoThemeToggleText = document.getElementById("themeToggleText");
+        const elementoMetaThemeColor = document.querySelector('meta[name="theme-color"]');
+        const THEME_STORAGE = "hr_youtube_theme";
+
+        function atualizarBotaoTema(tema) {
+            if (!elementoThemeToggleText) {
+                return;
+            }
+            elementoThemeToggleText.textContent = tema === "dark" ? "Modo claro" : "Modo escuro";
+        }
+
+        function aplicarTema(tema) {
+            const temaFinal = tema === "dark" ? "dark" : "light";
+            document.documentElement.setAttribute("data-theme", temaFinal);
+            localStorage.setItem(THEME_STORAGE, temaFinal);
+            if (elementoMetaThemeColor) {
+                elementoMetaThemeColor.setAttribute("content", temaFinal === "dark" ? "#0b1220" : "#f8f9fa");
+            }
+            atualizarBotaoTema(temaFinal);
+        }
+
+        function iniciarTema() {
+            const temaSalvo = localStorage.getItem(THEME_STORAGE);
+            if (temaSalvo === "dark" || temaSalvo === "light") {
+                aplicarTema(temaSalvo);
+                return;
+            }
+            const prefereEscuro = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+            aplicarTema(prefereEscuro ? "dark" : "light");
+        }
+
+        function atualizarMensagem(texto, tipo = "") {
+            elementoMensagem.className = `mensagem ${tipo}`.trim();
+            elementoMensagem.textContent = texto;
+        }
+
+        function criarBotaoAcao(simbolo, titulo, ariaLabel, onClick) {
+            const botao = document.createElement("button");
+            botao.type = "button";
+            botao.className = "btn-secundario";
+            botao.title = titulo;
+            botao.setAttribute("aria-label", ariaLabel);
+            botao.textContent = simbolo;
+            botao.addEventListener("click", onClick);
+            return botao;
+        }
+
+        function criarLinhaUrl(valor = "") {
+            const linha = document.createElement("div");
+            linha.className = "linha-url";
+
+            const input = document.createElement("input");
+            input.type = "url";
+            input.className = "input-url";
+            input.placeholder = "https://www.youtube.com/watch?v=...";
+            input.value = valor;
+            input.required = true;
+
+            const botaoAdd = criarBotaoAcao("+", "Adicionar URL", "Adicionar nova URL", () => {
+                elementoListaUrls.appendChild(criarLinhaUrl());
+            });
+
+            const botaoRemover = criarBotaoAcao("-", "Remover URL", "Remover URL", () => {
+                if (elementoListaUrls.children.length === 1) {
+                    input.value = "";
+                    input.focus();
+                    return;
+                }
+                linha.remove();
+            });
+
+            linha.appendChild(input);
+            linha.appendChild(botaoAdd);
+            linha.appendChild(botaoRemover);
+            return linha;
+        }
+
+        function obterUrls() {
+            return Array.from(document.querySelectorAll(".input-url"))
+                .map((item) => item.value.trim())
+                .filter((item) => item.length > 0);
+        }
+
+        function limparResultados() {
+            elementoListaResultados.innerHTML = "";
+            elementoTexto.value = "";
+            elementoDownloads.innerHTML = "";
+            elementoGrupoResultadoTranscricao.hidden = true;
+        }
+
+        function mostrarItemResultado(item) {
+            const li = document.createElement("li");
+            li.className = "item-resultado";
+
+            if (item.status === "sucesso") {
+                const titulo = item.titulo || item.url || "Item processado";
+                if (item.arquivo_url && item.arquivo_nome) {
+                    li.innerHTML = `<strong>Sucesso:</strong> ${titulo}<br><a href="${item.arquivo_url}">Baixar ${item.arquivo_nome}</a>`;
+                } else {
+                    const metodo = item.metodo_revisao ? `<br><small>Revisão: ${item.metodo_revisao}</small>` : "";
+                    li.innerHTML = `<strong>Sucesso:</strong> ${titulo}${metodo}`;
+                }
+            } else {
+                li.innerHTML = `<strong>Erro:</strong> ${item.url || "URL"}<br>${item.mensagem || "Falha no processamento."}`;
+            }
+
+            elementoListaResultados.appendChild(li);
+        }
+
+        function mostrarDownloadsTranscricao(listaArquivos) {
+            elementoDownloads.innerHTML = "";
+            listaArquivos.forEach((item, indice) => {
+                if (item.txt_url) {
+                    const linkTxt = document.createElement("a");
+                    linkTxt.href = item.txt_url;
+                    linkTxt.className = "btn-ghost";
+                    linkTxt.textContent = `Baixar .txt (${indice + 1})`;
+                    elementoDownloads.appendChild(linkTxt);
+                }
+                if (item.md_url) {
+                    const linkMd = document.createElement("a");
+                    linkMd.href = item.md_url;
+                    linkMd.className = "btn-ghost";
+                    linkMd.textContent = `Baixar .md (${indice + 1})`;
+                    elementoDownloads.appendChild(linkMd);
+                }
+            });
+        }
+
+        function atualizarCamposPorAcao() {
+            const acao = elementoAcao.value;
+            const transcricao = acao === "transcricao";
+
+            elementoGrupoIdioma.hidden = !transcricao;
+            elementoGrupoRevisao.hidden = !transcricao;
+            if (!transcricao) {
+                elementoGrupoResultadoTranscricao.hidden = true;
+            }
+
+            if (acao === "audio") {
+                elementoBotao.textContent = "Baixar áudio (mp3)";
+            } else if (acao === "video") {
+                elementoBotao.textContent = "Baixar vídeo (mp4)";
+            } else {
+                elementoBotao.textContent = "Transcrever com IA local";
+            }
+        }
+
+        async function enviarFormulario(evento) {
+            evento.preventDefault();
+
+            const acao = elementoAcao.value;
+            const urls = obterUrls();
+            const idioma = document.getElementById("idioma").value.trim();
+            const revisarTexto = document.getElementById("revisarTexto").checked;
+
+            if (urls.length === 0) {
+                atualizarMensagem("Informe pelo menos uma URL válida.", "erro");
+                return;
+            }
+
+            limparResultados();
+            elementoBotao.disabled = true;
+            atualizarMensagem("Processando, aguarde...");
+
+            try {
+                const resposta = await fetch("/api/processar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        acao,
+                        urls,
+                        idioma,
+                        revisar_texto: revisarTexto
+                    })
+                });
+
+                const dados = await resposta.json().catch(() => ({}));
+                const resultados = Array.isArray(dados.resultados) ? dados.resultados : [];
+                resultados.forEach(mostrarItemResultado);
+
+                if (dados.texto_transcrito) {
+                    elementoTexto.value = dados.texto_transcrito;
+                    elementoGrupoResultadoTranscricao.hidden = false;
+                }
+
+                if (Array.isArray(dados.arquivos_transcricao)) {
+                    mostrarDownloadsTranscricao(dados.arquivos_transcricao);
+                    if (dados.arquivos_transcricao.length > 0) {
+                        elementoGrupoResultadoTranscricao.hidden = false;
+                    }
+                }
+
+                if (resposta.ok && dados.status === "sucesso") {
+                    atualizarMensagem(dados.mensagem || "Concluído com sucesso.", "sucesso");
+                } else {
+                    atualizarMensagem(dados.mensagem || "Processamento falhou.", "erro");
+                }
+            } catch (erro) {
+                atualizarMensagem("Erro de comunicação com o backend.", "erro");
+            } finally {
+                elementoBotao.disabled = false;
+            }
+        }
+
+        elementoListaUrls.appendChild(criarLinhaUrl());
+        elementoAcao.addEventListener("change", atualizarCamposPorAcao);
+        document.getElementById("formProcessamento").addEventListener("submit", enviarFormulario);
+        if (elementoThemeToggle) {
+            elementoThemeToggle.addEventListener("click", () => {
+                const temaAtual = document.documentElement.getAttribute("data-theme") || "light";
+                aplicarTema(temaAtual === "dark" ? "light" : "dark");
+            });
+        }
+
+        iniciarTema();
+        atualizarCamposPorAcao();
+    </script>
+</body>
+</html>
