@@ -3,6 +3,7 @@
 !.env.example
 .venv/
 __pycache__/
+output/
 saida/
 tools/
 *.pyc
