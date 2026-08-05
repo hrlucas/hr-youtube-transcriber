@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HR - YouTube Transcriber</title>
+    <title>YouTube Transcriber</title>
     <meta name="theme-color" content="#0b1220">
     <style>
         :root {
@@ -69,13 +69,13 @@
             line-height: 1.5;
         }
 
-        .pagina {
+        .page {
             max-width: 1200px;
             margin: 0 auto;
             padding: var(--space-6);
         }
 
-        .topo {
+        .header {
             background: var(--color-surface);
             border: 1px solid var(--color-border);
             border-radius: var(--radius-lg);
@@ -88,13 +88,13 @@
             margin-bottom: var(--space-6);
         }
 
-        .marca {
+        .brand {
             display: flex;
             align-items: center;
             gap: var(--space-4);
         }
 
-        .marca h1 {
+        .brand h1 {
             margin: 0;
             font-family: var(--font-main);
             font-size: 32px;
@@ -102,19 +102,19 @@
             font-weight: 700;
         }
 
-        .marca p {
+        .brand p {
             margin: 2px 0 0 0;
             font-size: 14px;
             color: var(--color-text-muted);
         }
 
-        .acoes-topo {
+        .header-actions {
             display: flex;
             align-items: center;
             gap: var(--space-2);
         }
 
-        .tema-toggle {
+        .theme-toggle {
             min-height: 40px;
             padding: 0 14px;
             border: 1px solid var(--color-border);
@@ -128,7 +128,7 @@
             transition: border-color 0.2s, background-color 0.2s;
         }
 
-        .tema-toggle:hover {
+        .theme-toggle:hover {
             border-color: var(--color-blue-vivid);
         }
 
@@ -138,11 +138,11 @@
             gap: var(--space-6);
         }
 
-        .coluna-form {
+        .form-column {
             grid-column: span 7;
         }
 
-        .coluna-resultado {
+        .result-column {
             grid-column: span 5;
         }
 
@@ -163,11 +163,11 @@
             color: var(--color-brand-primary);
         }
 
-        .grupo {
+        .field-group {
             margin-bottom: var(--space-4);
         }
 
-        .grupo label {
+        .field-group label {
             display: block;
             margin-bottom: var(--space-2);
             font-size: 14px;
@@ -175,7 +175,7 @@
             color: var(--color-text-main);
         }
 
-        .revisao-opcao {
+        .review-option {
             display: flex;
             align-items: center;
             gap: var(--space-2);
@@ -185,14 +185,14 @@
             color: var(--color-text-main);
         }
 
-        .revisao-opcao input[type="checkbox"] {
+        .review-option input[type="checkbox"] {
             width: auto;
             min-height: auto;
             margin: 0;
             accent-color: var(--color-blue-vivid);
         }
 
-        .revisao-ajuda {
+        .review-hint {
             margin-top: var(--space-1);
             font-size: 12px;
             color: var(--color-text-muted);
@@ -237,20 +237,20 @@
             box-shadow: 0 0 0 3px rgba(0, 134, 205, 0.2);
         }
 
-        .lista-urls {
+        .url-list {
             display: flex;
             flex-direction: column;
             gap: var(--space-2);
         }
 
-        .linha-url {
+        .url-row {
             display: grid;
             grid-template-columns: 1fr auto auto;
             gap: var(--space-2);
         }
 
-        .btn-principal,
-        .btn-secundario,
+        .btn-primary,
+        .btn-secondary,
         .btn-ghost {
             min-height: 44px;
             padding: 0 16px;
@@ -261,35 +261,35 @@
             transition: 0.2s;
         }
 
-        .btn-principal {
+        .btn-primary {
             background: var(--color-brand-primary);
             color: var(--color-white);
             border: 1px solid var(--color-brand-primary);
             width: 100%;
         }
 
-        .btn-principal:hover {
+        .btn-primary:hover {
             background: var(--color-blue-dark);
         }
 
-        .btn-principal:active {
+        .btn-primary:active {
             background: var(--color-blue);
         }
 
-        .btn-principal:disabled {
+        .btn-primary:disabled {
             background: var(--color-border);
             border-color: var(--color-border);
             color: var(--color-gray);
             cursor: not-allowed;
         }
 
-        .btn-secundario {
+        .btn-secondary {
             background: var(--color-white);
             color: var(--color-brand-primary);
             border: 1px solid var(--color-border);
         }
 
-        .btn-secundario:hover {
+        .btn-secondary:hover {
             border-color: var(--color-blue);
             background: var(--color-bg-web);
         }
@@ -304,7 +304,7 @@
             background: rgba(23, 80, 152, 0.08);
         }
 
-        .mensagem {
+        .message {
             border-left: 4px solid var(--color-blue-vivid);
             background: #e8f4fd;
             color: var(--color-blue-dark);
@@ -314,36 +314,36 @@
             font-size: 14px;
         }
 
-        .mensagem.sucesso {
+        .message.success {
             border-left-color: #2b8a3e;
             background: #edf7ef;
             color: #1f6b34;
         }
 
-        .mensagem.erro {
+        .message.error {
             border-left-color: #c92a2a;
             background: #fdecec;
             color: #a61b1b;
         }
 
-        [data-theme="dark"] .mensagem {
+        [data-theme="dark"] .message {
             background: rgba(25, 160, 230, 0.16);
             color: #d8ecff;
         }
 
-        [data-theme="dark"] .mensagem.sucesso {
+        [data-theme="dark"] .message.success {
             border-left-color: #34d399;
             background: rgba(16, 185, 129, 0.14);
             color: #d1fae5;
         }
 
-        [data-theme="dark"] .mensagem.erro {
+        [data-theme="dark"] .message.error {
             border-left-color: #f87171;
             background: rgba(239, 68, 68, 0.14);
             color: #fee2e2;
         }
 
-        .lista-resultado {
+        .result-list {
             list-style: none;
             margin: 0 0 var(--space-4) 0;
             padding: 0;
@@ -354,24 +354,24 @@
             overflow: auto;
         }
 
-        .item-resultado {
+        .result-item {
             border: 1px solid var(--color-border);
             border-radius: var(--radius-sm);
             background: var(--color-white);
             padding: var(--space-3);
         }
 
-        .item-resultado a {
+        .result-item a {
             color: var(--color-blue);
             font-weight: 600;
             text-decoration: none;
         }
 
-        .item-resultado a:hover {
+        .result-item a:hover {
             text-decoration: underline;
         }
 
-        #textoTranscrito {
+        #transcribedText {
             min-height: 220px;
             resize: vertical;
             font-family: var(--font-mono);
@@ -385,7 +385,7 @@
             gap: var(--space-2);
         }
 
-        .rodape {
+        .footer {
             margin-top: var(--space-5);
             text-align: center;
             color: var(--color-text-muted);
@@ -393,23 +393,23 @@
         }
 
         @media (max-width: 1024px) {
-            .coluna-form,
-            .coluna-resultado {
+            .form-column,
+            .result-column {
                 grid-column: span 6;
             }
         }
 
         @media (max-width: 768px) {
-            .pagina {
+            .page {
                 padding: var(--space-4);
             }
 
-            .topo {
+            .header {
                 flex-direction: column;
                 align-items: flex-start;
             }
 
-            .acoes-topo {
+            .header-actions {
                 width: 100%;
             }
 
@@ -418,8 +418,8 @@
                 gap: var(--space-4);
             }
 
-            .coluna-form,
-            .coluna-resultado {
+            .form-column,
+            .result-column {
                 grid-column: 1 / -1;
             }
 
@@ -430,38 +430,38 @@
     </style>
 </head>
 <body>
-    <div class="pagina">
-        <header class="topo">
-            <div class="marca">
+    <div class="page">
+        <header class="header">
+            <div class="brand">
                 <div>
-                    <h1>HR - YouTube Transcriber</h1>
+                    <h1>YouTube Transcriber</h1>
                     <p>Baixar MP3, MP4 e transcrever vídeo com IA local</p>
                 </div>
             </div>
-            <div class="acoes-topo">
-                <button id="themeToggle" class="tema-toggle" type="button" aria-label="Alternar tema">
+            <div class="header-actions">
+                <button id="themeToggle" class="theme-toggle" type="button" aria-label="Alternar tema">
                     <span id="themeToggleText">Modo escuro</span>
                 </button>
             </div>
         </header>
 
         <main class="grid">
-            <section class="coluna-form">
+            <section class="form-column">
                 <article class="card">
                     <h2>Processamento</h2>
-                    <form id="formProcessamento">
-                        <div class="grupo">
-                            <label for="acao">O que deseja fazer?</label>
-                            <select id="acao" name="acao">
+                    <form id="processForm">
+                        <div class="field-group">
+                            <label for="action">O que deseja fazer?</label>
+                            <select id="action" name="action">
                                 <option value="audio">Baixar como áudio (mp3)</option>
                                 <option value="video">Baixar como vídeo (mp4)</option>
-                                <option value="transcricao">Transcrever com IA local (faster-whisper)</option>
+                                <option value="transcript">Transcrever com IA local (faster-whisper)</option>
                             </select>
                         </div>
 
-                        <div id="grupoIdioma" class="grupo" hidden>
-                            <label for="idioma">Idioma da transcrição (opcional)</label>
-                            <select id="idioma" name="idioma">
+                        <div id="languageGroup" class="field-group" hidden>
+                            <label for="language">Idioma da transcrição (opcional)</label>
+                            <select id="language" name="language">
                                 <option value="">Detectar automaticamente</option>
                                 <option value="pt" selected>Português</option>
                                 <option value="en">Inglês</option>
@@ -475,34 +475,34 @@
                             </select>
                         </div>
 
-                        <div id="grupoRevisao" class="grupo" hidden>
-                            <label class="revisao-opcao" for="revisarTexto">
-                                <input id="revisarTexto" name="revisarTexto" type="checkbox" checked>
+                        <div id="reviewGroup" class="field-group" hidden>
+                            <label class="review-option" for="reviewText">
+                                <input id="reviewText" name="reviewText" type="checkbox" checked>
                                 Revisar texto para deixar mais coeso
                             </label>
-                            <div class="revisao-ajuda">Usa IA local para revisar o texto transcrito</div>
+                            <div class="review-hint">Usa IA local para revisar o texto transcrito</div>
                         </div>
 
-                        <div class="grupo">
+                        <div class="field-group">
                             <label>URLs do YouTube</label>
-                            <div id="listaUrls" class="lista-urls"></div>
+                            <div id="urlList" class="url-list"></div>
                         </div>
 
-                        <button id="botaoExecutar" class="btn-principal" type="submit">Processar</button>
+                        <button id="submitButton" class="btn-primary" type="submit">Processar</button>
                     </form>
                 </article>
             </section>
 
-            <section class="coluna-resultado">
+            <section class="result-column">
                 <article class="card">
                     <h2>Resultado</h2>
-                    <div id="mensagemStatus" class="mensagem">Aguardando ação.</div>
-                    <ul id="listaResultados" class="lista-resultado"></ul>
+                    <div id="statusMessage" class="message">Aguardando ação.</div>
+                    <ul id="resultList" class="result-list"></ul>
 
-                    <div id="grupoResultadoTranscricao" class="grupo" hidden>
-                        <label for="textoTranscrito">Transcrição revisada</label>
-                        <textarea id="textoTranscrito" readonly placeholder="A transcrição revisada aparecerá aqui"></textarea>
-                        <div id="downloadsTranscricao" class="downloads"></div>
+                    <div id="transcriptResultGroup" class="field-group" hidden>
+                        <label for="transcribedText">Transcrição revisada</label>
+                        <textarea id="transcribedText" readonly placeholder="A transcrição revisada aparecerá aqui"></textarea>
+                        <div id="transcriptDownloads" class="downloads"></div>
                     </div>
                 </article>
             </section>
@@ -510,234 +510,234 @@
     </div>
 
     <script>
-        const elementoAcao = document.getElementById("acao");
-        const elementoGrupoIdioma = document.getElementById("grupoIdioma");
-        const elementoGrupoRevisao = document.getElementById("grupoRevisao");
-        const elementoListaUrls = document.getElementById("listaUrls");
-        const elementoBotao = document.getElementById("botaoExecutar");
-        const elementoMensagem = document.getElementById("mensagemStatus");
-        const elementoListaResultados = document.getElementById("listaResultados");
-        const elementoGrupoResultadoTranscricao = document.getElementById("grupoResultadoTranscricao");
-        const elementoTexto = document.getElementById("textoTranscrito");
-        const elementoDownloads = document.getElementById("downloadsTranscricao");
-        const elementoThemeToggle = document.getElementById("themeToggle");
-        const elementoThemeToggleText = document.getElementById("themeToggleText");
-        const elementoMetaThemeColor = document.querySelector('meta[name="theme-color"]');
-        const THEME_STORAGE = "hr_youtube_theme";
+        const actionElement = document.getElementById("action");
+        const languageGroupElement = document.getElementById("languageGroup");
+        const reviewGroupElement = document.getElementById("reviewGroup");
+        const urlListElement = document.getElementById("urlList");
+        const submitButtonElement = document.getElementById("submitButton");
+        const statusMessageElement = document.getElementById("statusMessage");
+        const resultListElement = document.getElementById("resultList");
+        const transcriptResultGroupElement = document.getElementById("transcriptResultGroup");
+        const transcribedTextElement = document.getElementById("transcribedText");
+        const downloadsElement = document.getElementById("transcriptDownloads");
+        const themeToggleElement = document.getElementById("themeToggle");
+        const themeToggleTextElement = document.getElementById("themeToggleText");
+        const metaThemeColorElement = document.querySelector('meta[name="theme-color"]');
+        const THEME_STORAGE_KEY = "youtube_transcriber_theme";
 
-        function atualizarBotaoTema(tema) {
-            if (!elementoThemeToggleText) {
+        function updateThemeButton(theme) {
+            if (!themeToggleTextElement) {
                 return;
             }
-            elementoThemeToggleText.textContent = tema === "dark" ? "Modo claro" : "Modo escuro";
+            themeToggleTextElement.textContent = theme === "dark" ? "Modo claro" : "Modo escuro";
         }
 
-        function aplicarTema(tema) {
-            const temaFinal = tema === "dark" ? "dark" : "light";
-            document.documentElement.setAttribute("data-theme", temaFinal);
-            localStorage.setItem(THEME_STORAGE, temaFinal);
-            if (elementoMetaThemeColor) {
-                elementoMetaThemeColor.setAttribute("content", temaFinal === "dark" ? "#0b1220" : "#f8f9fa");
+        function applyTheme(theme) {
+            const finalTheme = theme === "dark" ? "dark" : "light";
+            document.documentElement.setAttribute("data-theme", finalTheme);
+            localStorage.setItem(THEME_STORAGE_KEY, finalTheme);
+            if (metaThemeColorElement) {
+                metaThemeColorElement.setAttribute("content", finalTheme === "dark" ? "#0b1220" : "#f8f9fa");
             }
-            atualizarBotaoTema(temaFinal);
+            updateThemeButton(finalTheme);
         }
 
-        function iniciarTema() {
-            const temaSalvo = localStorage.getItem(THEME_STORAGE);
-            if (temaSalvo === "dark" || temaSalvo === "light") {
-                aplicarTema(temaSalvo);
+        function initTheme() {
+            const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+            if (savedTheme === "dark" || savedTheme === "light") {
+                applyTheme(savedTheme);
                 return;
             }
-            const prefereEscuro = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-            aplicarTema(prefereEscuro ? "dark" : "light");
+            const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+            applyTheme(prefersDark ? "dark" : "light");
         }
 
-        function atualizarMensagem(texto, tipo = "") {
-            elementoMensagem.className = `mensagem ${tipo}`.trim();
-            elementoMensagem.textContent = texto;
+        function updateMessage(text, type = "") {
+            statusMessageElement.className = `message ${type}`.trim();
+            statusMessageElement.textContent = text;
         }
 
-        function criarBotaoAcao(simbolo, titulo, ariaLabel, onClick) {
-            const botao = document.createElement("button");
-            botao.type = "button";
-            botao.className = "btn-secundario";
-            botao.title = titulo;
-            botao.setAttribute("aria-label", ariaLabel);
-            botao.textContent = simbolo;
-            botao.addEventListener("click", onClick);
-            return botao;
+        function createActionButton(symbol, title, ariaLabel, onClick) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "btn-secondary";
+            button.title = title;
+            button.setAttribute("aria-label", ariaLabel);
+            button.textContent = symbol;
+            button.addEventListener("click", onClick);
+            return button;
         }
 
-        function criarLinhaUrl(valor = "") {
-            const linha = document.createElement("div");
-            linha.className = "linha-url";
+        function createUrlRow(value = "") {
+            const row = document.createElement("div");
+            row.className = "url-row";
 
             const input = document.createElement("input");
             input.type = "url";
-            input.className = "input-url";
+            input.className = "url-input";
             input.placeholder = "https://www.youtube.com/watch?v=...";
-            input.value = valor;
+            input.value = value;
             input.required = true;
 
-            const botaoAdd = criarBotaoAcao("+", "Adicionar URL", "Adicionar nova URL", () => {
-                elementoListaUrls.appendChild(criarLinhaUrl());
+            const addButton = createActionButton("+", "Adicionar URL", "Adicionar nova URL", () => {
+                urlListElement.appendChild(createUrlRow());
             });
 
-            const botaoRemover = criarBotaoAcao("-", "Remover URL", "Remover URL", () => {
-                if (elementoListaUrls.children.length === 1) {
+            const removeButton = createActionButton("-", "Remover URL", "Remover URL", () => {
+                if (urlListElement.children.length === 1) {
                     input.value = "";
                     input.focus();
                     return;
                 }
-                linha.remove();
+                row.remove();
             });
 
-            linha.appendChild(input);
-            linha.appendChild(botaoAdd);
-            linha.appendChild(botaoRemover);
-            return linha;
+            row.appendChild(input);
+            row.appendChild(addButton);
+            row.appendChild(removeButton);
+            return row;
         }
 
-        function obterUrls() {
-            return Array.from(document.querySelectorAll(".input-url"))
+        function getUrls() {
+            return Array.from(document.querySelectorAll(".url-input"))
                 .map((item) => item.value.trim())
                 .filter((item) => item.length > 0);
         }
 
-        function limparResultados() {
-            elementoListaResultados.innerHTML = "";
-            elementoTexto.value = "";
-            elementoDownloads.innerHTML = "";
-            elementoGrupoResultadoTranscricao.hidden = true;
+        function clearResults() {
+            resultListElement.innerHTML = "";
+            transcribedTextElement.value = "";
+            downloadsElement.innerHTML = "";
+            transcriptResultGroupElement.hidden = true;
         }
 
-        function mostrarItemResultado(item) {
+        function showResultItem(item) {
             const li = document.createElement("li");
-            li.className = "item-resultado";
+            li.className = "result-item";
 
-            if (item.status === "sucesso") {
-                const titulo = item.titulo || item.url || "Item processado";
-                if (item.arquivo_url && item.arquivo_nome) {
-                    li.innerHTML = `<strong>Sucesso:</strong> ${titulo}<br><a href="${item.arquivo_url}">Baixar ${item.arquivo_nome}</a>`;
+            if (item.status === "success") {
+                const title = item.title || item.url || "Item processado";
+                if (item.file_url && item.file_name) {
+                    li.innerHTML = `<strong>Sucesso:</strong> ${title}<br><a href="${item.file_url}">Baixar ${item.file_name}</a>`;
                 } else {
-                    const metodo = item.metodo_revisao ? `<br><small>Revisão: ${item.metodo_revisao}</small>` : "";
-                    li.innerHTML = `<strong>Sucesso:</strong> ${titulo}${metodo}`;
+                    const method = item.review_method ? `<br><small>Revisão: ${item.review_method}</small>` : "";
+                    li.innerHTML = `<strong>Sucesso:</strong> ${title}${method}`;
                 }
             } else {
-                li.innerHTML = `<strong>Erro:</strong> ${item.url || "URL"}<br>${item.mensagem || "Falha no processamento."}`;
+                li.innerHTML = `<strong>Erro:</strong> ${item.url || "URL"}<br>${item.message || "Falha no processamento."}`;
             }
 
-            elementoListaResultados.appendChild(li);
+            resultListElement.appendChild(li);
         }
 
-        function mostrarDownloadsTranscricao(listaArquivos) {
-            elementoDownloads.innerHTML = "";
-            listaArquivos.forEach((item, indice) => {
+        function showTranscriptDownloads(fileList) {
+            downloadsElement.innerHTML = "";
+            fileList.forEach((item, index) => {
                 if (item.txt_url) {
-                    const linkTxt = document.createElement("a");
-                    linkTxt.href = item.txt_url;
-                    linkTxt.className = "btn-ghost";
-                    linkTxt.textContent = `Baixar .txt (${indice + 1})`;
-                    elementoDownloads.appendChild(linkTxt);
+                    const txtLink = document.createElement("a");
+                    txtLink.href = item.txt_url;
+                    txtLink.className = "btn-ghost";
+                    txtLink.textContent = `Baixar .txt (${index + 1})`;
+                    downloadsElement.appendChild(txtLink);
                 }
                 if (item.md_url) {
-                    const linkMd = document.createElement("a");
-                    linkMd.href = item.md_url;
-                    linkMd.className = "btn-ghost";
-                    linkMd.textContent = `Baixar .md (${indice + 1})`;
-                    elementoDownloads.appendChild(linkMd);
+                    const mdLink = document.createElement("a");
+                    mdLink.href = item.md_url;
+                    mdLink.className = "btn-ghost";
+                    mdLink.textContent = `Baixar .md (${index + 1})`;
+                    downloadsElement.appendChild(mdLink);
                 }
             });
         }
 
-        function atualizarCamposPorAcao() {
-            const acao = elementoAcao.value;
-            const transcricao = acao === "transcricao";
+        function updateFieldsByAction() {
+            const action = actionElement.value;
+            const isTranscript = action === "transcript";
 
-            elementoGrupoIdioma.hidden = !transcricao;
-            elementoGrupoRevisao.hidden = !transcricao;
-            if (!transcricao) {
-                elementoGrupoResultadoTranscricao.hidden = true;
+            languageGroupElement.hidden = !isTranscript;
+            reviewGroupElement.hidden = !isTranscript;
+            if (!isTranscript) {
+                transcriptResultGroupElement.hidden = true;
             }
 
-            if (acao === "audio") {
-                elementoBotao.textContent = "Baixar áudio (mp3)";
-            } else if (acao === "video") {
-                elementoBotao.textContent = "Baixar vídeo (mp4)";
+            if (action === "audio") {
+                submitButtonElement.textContent = "Baixar áudio (mp3)";
+            } else if (action === "video") {
+                submitButtonElement.textContent = "Baixar vídeo (mp4)";
             } else {
-                elementoBotao.textContent = "Transcrever com IA local";
+                submitButtonElement.textContent = "Transcrever com IA local";
             }
         }
 
-        async function enviarFormulario(evento) {
-            evento.preventDefault();
+        async function submitForm(event) {
+            event.preventDefault();
 
-            const acao = elementoAcao.value;
-            const urls = obterUrls();
-            const idioma = document.getElementById("idioma").value.trim();
-            const revisarTexto = document.getElementById("revisarTexto").checked;
+            const action = actionElement.value;
+            const urls = getUrls();
+            const language = document.getElementById("language").value.trim();
+            const reviewText = document.getElementById("reviewText").checked;
 
             if (urls.length === 0) {
-                atualizarMensagem("Informe pelo menos uma URL válida.", "erro");
+                updateMessage("Informe pelo menos uma URL válida.", "error");
                 return;
             }
 
-            limparResultados();
-            elementoBotao.disabled = true;
-            atualizarMensagem("Processando, aguarde...");
+            clearResults();
+            submitButtonElement.disabled = true;
+            updateMessage("Processando, aguarde...");
 
             try {
-                const resposta = await fetch("/api/processar", {
+                const response = await fetch("/api/process", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        acao,
+                        action,
                         urls,
-                        idioma,
-                        revisar_texto: revisarTexto
+                        language,
+                        review_text: reviewText
                     })
                 });
 
-                const dados = await resposta.json().catch(() => ({}));
-                const resultados = Array.isArray(dados.resultados) ? dados.resultados : [];
-                resultados.forEach(mostrarItemResultado);
+                const data = await response.json().catch(() => ({}));
+                const results = Array.isArray(data.results) ? data.results : [];
+                results.forEach(showResultItem);
 
-                if (dados.texto_transcrito) {
-                    elementoTexto.value = dados.texto_transcrito;
-                    elementoGrupoResultadoTranscricao.hidden = false;
+                if (data.transcribed_text) {
+                    transcribedTextElement.value = data.transcribed_text;
+                    transcriptResultGroupElement.hidden = false;
                 }
 
-                if (Array.isArray(dados.arquivos_transcricao)) {
-                    mostrarDownloadsTranscricao(dados.arquivos_transcricao);
-                    if (dados.arquivos_transcricao.length > 0) {
-                        elementoGrupoResultadoTranscricao.hidden = false;
+                if (Array.isArray(data.transcription_files)) {
+                    showTranscriptDownloads(data.transcription_files);
+                    if (data.transcription_files.length > 0) {
+                        transcriptResultGroupElement.hidden = false;
                     }
                 }
 
-                if (resposta.ok && dados.status === "sucesso") {
-                    atualizarMensagem(dados.mensagem || "Concluído com sucesso.", "sucesso");
+                if (response.ok && data.status === "success") {
+                    updateMessage(data.message || "Concluído com sucesso.", "success");
                 } else {
-                    atualizarMensagem(dados.mensagem || "Processamento falhou.", "erro");
+                    updateMessage(data.message || "Processamento falhou.", "error");
                 }
-            } catch (erro) {
-                atualizarMensagem("Erro de comunicação com o backend.", "erro");
+            } catch (error) {
+                updateMessage("Erro de comunicação com o backend.", "error");
             } finally {
-                elementoBotao.disabled = false;
+                submitButtonElement.disabled = false;
             }
         }
 
-        elementoListaUrls.appendChild(criarLinhaUrl());
-        elementoAcao.addEventListener("change", atualizarCamposPorAcao);
-        document.getElementById("formProcessamento").addEventListener("submit", enviarFormulario);
-        if (elementoThemeToggle) {
-            elementoThemeToggle.addEventListener("click", () => {
-                const temaAtual = document.documentElement.getAttribute("data-theme") || "light";
-                aplicarTema(temaAtual === "dark" ? "light" : "dark");
+        urlListElement.appendChild(createUrlRow());
+        actionElement.addEventListener("change", updateFieldsByAction);
+        document.getElementById("processForm").addEventListener("submit", submitForm);
+        if (themeToggleElement) {
+            themeToggleElement.addEventListener("click", () => {
+                const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+                applyTheme(currentTheme === "dark" ? "light" : "dark");
             });
         }
 
-        iniciarTema();
-        atualizarCamposPorAcao();
+        initTheme();
+        updateFieldsByAction();
     </script>
 </body>
 </html>
