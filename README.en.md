@@ -1,4 +1,4 @@
-# 🎬 YouTube Transcriber
+# 🎬 YouTube Transcriber Web
 
 <p align="center">
   <a href="https://github.com/lucas-hochmann-rosa/youtube-transcriber-web">
@@ -17,7 +17,7 @@
 
 <p align="center"><a href="README.md">🇧🇷 Português</a> · 🇺🇸 English</p>
 
-> A personal project to bring YouTube media extraction and local AI transcription into a single flow. Built on Python with FastAPI, yt-dlp and faster-whisper, with optional review through a local Ollama model and a rule-based fallback. Open under the MIT license and open to contributions, as long as author attribution is kept in uses and derivatives.
+> Web application for YouTube media extraction and local AI-powered transcription. Built with Python, FastAPI, yt-dlp, and faster-whisper, featuring optional local Ollama-based refinement with a rule-based fallback.
 
 ---
 
